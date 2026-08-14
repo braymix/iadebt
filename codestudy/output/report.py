@@ -312,7 +312,8 @@ _JS = r"""
     var data=JSON.parse(document.getElementById('cards-data').textContent||'[]');
     function q(s){ return '"'+String(s==null?'':s).replace(/"/g,'""')+'"'; }
     var rows=data.map(function(c){return [c.front,c.back,c.tags,c.deck].map(q).join(',');});
-    download('flashcards.csv', 'front,back,tags,deck\n'+rows.join('\n'), 'text/csv');
+    // BOM UTF-8: cosi' anche Excel mostra correttamente accenti/caratteri speciali.
+    download('flashcards.csv', '\uFEFF'+'front,back,tags,deck\n'+rows.join('\n'), 'text/csv');
   });
 
   // ---- Tema ----
