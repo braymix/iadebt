@@ -160,6 +160,38 @@ def _clean_mermaid(text: str) -> str:
     return t.strip()
 
 
+# Colori dell'evidenziazione "punto modificato": ambra con testo scuro, cosi'
+# resta leggibile sia su sfondo chiaro sia su sfondo scuro della mappa.
+_CHANGED_CLASSDEF = "  classDef changed fill:#ffd24d,stroke:#e0a35b,stroke-width:2px,color:#1c2230;"
+
+
+def _has_change_marker(mermaid: str) -> bool:
+    """True se la mappa evidenzia dove e' avvenuta la modifica."""
+    t = (mermaid or "").lower()
+    if ":::changed" in t:
+        return True
+    # sequenceDiagram: nota testuale che marca il punto cambiato
+    return "sequencediagram" in t.split("\n", 1)[0] and "modifica" in t and "note " in t
+
+
+def _render_mermaid(text: str) -> str:
+    """Pulisce il Mermaid e, per i flowchart che marcano un nodo con `:::changed`,
+    inietta lo stile della classe `changed` se il modello non l'ha definita.
+
+    Il `:::` non e' supportato nei sequenceDiagram: li' l'evidenziazione e' una
+    `Note`, che Mermaid rende gia' in modo distinto senza aggiunte."""
+    t = _clean_mermaid(text)
+    if not t:
+        return t
+    first = t.splitlines()[0].strip().lower()
+    is_flow = first.startswith("flowchart") or first.startswith("graph")
+    if is_flow and ":::changed" in t and "classdef changed" not in t.lower():
+        lines = t.splitlines()
+        lines.insert(1, _CHANGED_CLASSDEF)
+        t = "\n".join(lines)
+    return t
+
+
 def _slug(text: str) -> str:
     s = re.sub(r"[^\w.-]+", "-", text.strip().lower())
     return re.sub(r"-{2,}", "-", s).strip("-") or "dettaglio"
@@ -238,6 +270,9 @@ hr{border:none;border-top:1px solid var(--line);margin:18px 0}
 .map{background:var(--code-bg);border:1px solid var(--line);border-radius:10px;padding:12px;overflow:auto}
 .map pre.mermaid{margin:0;text-align:center;background:none}
 .map pre.mermaid.src{white-space:pre;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;text-align:left}
+.mapnote{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;margin:8px 2px 0}
+.chip-changed{display:inline-block;width:13px;height:13px;border-radius:4px;
+  background:#ffd24d;border:1px solid #e0a35b;flex:0 0 auto}
 
 details.fc{border:1px solid var(--line);border-radius:10px;padding:0;margin:8px 0;background:var(--bg);overflow:hidden}
 details.fc>summary{cursor:pointer;padding:11px 14px;font-weight:600;list-style:none;display:flex;gap:8px}
@@ -378,10 +413,15 @@ def _detail_section(idx: int, title: str, res: AnalysisResult) -> str:
     if res.notes_markdown:
         body.append('<div class="sec-h">Note</div>')
         body.append(_md_to_html(res.notes_markdown))
-    mer = _clean_mermaid(res.mermaid)
+    mer = _render_mermaid(res.mermaid)
     if mer:
         body.append('<div class="sec-h">Mappa del flusso</div>')
         body.append(f'<div class="map"><pre class="mermaid">{_esc(mer)}</pre></div>')
+        if _has_change_marker(mer):
+            body.append(
+                '<div class="mapnote"><span class="chip-changed"></span>'
+                'evidenziato = punto toccato dalla modifica</div>'
+            )
     if res.flashcards:
         body.append('<div class="sec-h">Flashcard</div>')
         body.append(_flashcards_html(res.flashcards, f"block-{idx}"))

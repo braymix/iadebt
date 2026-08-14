@@ -107,6 +107,10 @@ essere aperto direttamente nel browser:
   file/modulo: riassunto, **flusso tecnico** + **flusso di business/dominio**, note,
   **mappa Mermaid** renderizzata e **flashcard** interattive (click per rivelare la
   risposta; funzionano anche offline perché sono `<details>` nativi).
+- **Mappa che localizza il cambio** — in modalità incrementale, la mappa del flusso
+  **evidenzia il punto toccato dalla modifica** (nodo in ambra per i flowchart, nota
+  dedicata per i sequenceDiagram), con una legenda sotto il diagramma, così vedi
+  a colpo d'occhio *dove* nel flusso è avvenuto il cambiamento.
 - **Scaricabile a sezioni** — ogni dettaglio (architettura, singolo file/modulo, il
   mazzo di flashcard) ha un pulsante **«⬇ Scarica dettaglio»** che esporta quella
   sola sezione come mini-HTML autonomo. L'export clona il DOM già renderizzato, quindi

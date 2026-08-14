@@ -66,6 +66,22 @@ Regole per le modifiche piccole (NON negoziabili):
 """
 
 
+# Addendum applicato SOLO ai diff (non all'analisi del sorgente in modalita' full):
+# chiede di evidenziare, dentro la mappa, dove il diff ha inciso.
+_DELTA_MERMAID_RULE = """\
+
+Evidenziazione della modifica nel Mermaid (per questo DIFF):
+- Marca il/i punto/i del flusso TOCCATI dal diff in modo DISTINTO dal resto.
+- flowchart/graph: aggiungi `:::changed` al/ai nodo/i modificato/i
+  (es. `V[Valida importo]:::changed`). NON definire tu i colori della classe
+  `changed`: allo stile ci pensa il report.
+- sequenceDiagram: accanto all'interazione cambiata aggiungi una nota
+  `Note over <partecipante>: modifica`.
+- Marca SOLO cio' che il diff tocca davvero; se il diff non incide sul flusso
+  mostrato, non marcare nulla.
+"""
+
+
 def _system_preamble(rule: StackRule) -> str:
     hint = rule.flow_hint or "Analisi generica basata sul diff/sorgente."
     return (
@@ -93,6 +109,7 @@ def build_prompt(unit: Unit, rule: StackRule) -> str:
                 "essenziale cosa cambia e perche'; niente flusso completo ne' mappe."
             )
         else:
+            contract = _JSON_CONTRACT + _DELTA_MERMAID_RULE
             task = (
                 f"Analizza il DIFF del file `{unit.title}` sul range di commit indicato. "
                 "Spiega come e' cambiato il flusso (tecnico e di dominio)."
