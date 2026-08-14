@@ -15,8 +15,13 @@ ricostruisce quel percorso al posto tuo e te lo restituisce come flashcard che
 ## Le due modalità
 
 - **`incremental`** — delta di commit. Dato un range (es. `HEAD~10..HEAD` o
-  `<sha>..HEAD`), per ogni file modificato produce spiegazione del cambio di flusso,
-  flashcard e una mini-mappa. Uso quotidiano, leggero.
+  `<sha>..HEAD`) **oppure uno o più commit specifici** (`--commit`), per ogni file
+  modificato produce spiegazione del cambio di flusso, flashcard e una mini-mappa.
+  Le spiegazioni sono **proporzionate al peso della modifica**: i cambi piccoli
+  ricevono un output minimale (una frase e una flashcard), quelli grandi il flusso
+  completo. Con `--base <ref>` fai un **controllo pre-commit**: analizzi ciò che
+  differisce da un branch/commit, **incluse le modifiche non ancora committate**.
+  Uso quotidiano, leggero.
 - **`full`** — intero software (onboarding). Mappa gerarchica bottom-up:
   L1 riassunto per file → L2 sintesi per modulo/cartella → L3 architettura macro.
   Poiché l'intero codebase non entra in un prompt, procede a livelli. Limitabile a
@@ -71,6 +76,14 @@ codestudy init-config              # scrive codestudy.yaml
 
 # 2) modalità incrementale (uso quotidiano)
 codestudy incremental --repo . --range HEAD~10..HEAD
+
+# 2b) uno o più commit specifici (ognuno analizzato a sé)
+codestudy incremental --commit 2d24ce5 --commit 9890bc6
+
+# 2c) controllo PRIMA di committare: cosa differisce dal branch, incluse
+#     le modifiche non committate (i file nuovi vanno prima "git add"-ati)
+codestudy incremental --base main     # tutto il tuo branch vs main
+codestudy incremental --base HEAD      # solo il lavoro in sospeso
 
 # 3) intero software (onboarding), eventualmente limitato a un modulo
 codestudy full --repo . --module src/main/java/com/acme/debts
@@ -153,6 +166,7 @@ workers: 1
 max_retries: 4
 backoff_base_seconds: 2.0
 max_payload_chars: 24000
+minimal_threshold: 12     # <= righe cambiate ⇒ spiegazione minimale (solo summary + 1 flashcard)
 providers:
   claude-code-cli: { command: claude, model: "", extra_args: [], timeout_seconds: 600 }
   api:   { base_url: https://api.anthropic.com/v1/messages, kind: anthropic, model: claude-sonnet-5, api_key_env: ANTHROPIC_API_KEY, max_tokens: 4096 }
