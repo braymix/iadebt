@@ -1,0 +1,3 @@
+recursive-include codestudy/stack/rules *.yaml
+include README.md
+include pyproject.toml
