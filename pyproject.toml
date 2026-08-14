@@ -1,0 +1,23 @@
+[project]
+name = "codestudy"
+version = "0.1.0"
+description = "Genera materiale di studio (flashcard, mappe Mermaid, note) dal tuo repository git per colmare il debito di comprensione del codice generato con l'AI."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "typer>=0.9",
+    "PyYAML>=6.0",
+]
+
+[project.scripts]
+codestudy = "codestudy.cli:app"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["codestudy*"]
+
+[tool.setuptools.package-data]
+"codestudy.stack" = ["rules/*.yaml"]

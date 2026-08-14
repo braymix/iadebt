@@ -1,0 +1,31 @@
+name: java-spring
+language: java
+extensions: [".java"]
+manifests: ["pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle"]
+manifest_hints: ["spring-boot", "springframework", "org.springframework"]
+entrypoint_markers:
+  - "@RestController"
+  - "@Controller"
+  - "@RequestMapping"
+  - "@GetMapping"
+  - "@PostMapping"
+  - "@PutMapping"
+  - "@DeleteMapping"
+layer_markers:
+  - "@Service"
+  - "@Repository"
+  - "@Component"
+  - "@Configuration"
+  - "@Entity"
+  - "@Autowired"
+  - "@Transactional"
+  - "@Valid"
+  - "@ControllerAdvice"
+flow_hint: |
+  Stack Java/Spring. Traccia il percorso di esecuzione tipico:
+  @RestController/@Controller (endpoint di routing) -> @Service (logica di
+  business) -> @Repository (persistenza JPA/DbContext). Presta attenzione a:
+  dependency injection (@Autowired / costruttori), gestione transazioni
+  (@Transactional), validazione (@Valid, Bean Validation), e mappatura degli
+  errori (@ControllerAdvice / @ExceptionHandler). Collega le regole di dominio
+  ai controlli nei service e ai vincoli sulle entita'.

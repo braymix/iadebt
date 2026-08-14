@@ -1,0 +1,33 @@
+name: dotnet
+language: csharp
+extensions: [".cs"]
+manifests: [".csproj", ".sln", "Directory.Build.props", "Program.cs", "Startup.cs"]
+manifest_hints: ["Microsoft.AspNetCore", "Microsoft.EntityFrameworkCore"]
+entrypoint_markers:
+  - "[ApiController]"
+  - "[Route"
+  - "[HttpGet"
+  - "[HttpPost"
+  - "[HttpPut"
+  - "[HttpDelete"
+  - "ControllerBase"
+  - "MapGet("
+  - "MapPost("
+layer_markers:
+  - "IServiceCollection"
+  - "AddScoped"
+  - "AddTransient"
+  - "AddSingleton"
+  - "DbContext"
+  - "DbSet"
+  - "[FromBody]"
+  - "[FromServices]"
+  - "IActionResult"
+flow_hint: |
+  Stack C#/.NET (ASP.NET Core). Traccia il percorso di esecuzione tipico:
+  Controller [ApiController]/routing (o minimal API MapGet/MapPost) -> service
+  applicativo -> repository o DbContext (EF Core). Presta attenzione a:
+  dependency injection del container (AddScoped/Transient/Singleton in
+  Program.cs/Startup.cs), model binding e validazione ([FromBody], data
+  annotations), middleware, e mappatura degli errori. Collega le regole di
+  dominio ai controlli nei service e ai vincoli sul modello EF.

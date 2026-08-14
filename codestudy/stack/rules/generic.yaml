@@ -1,0 +1,12 @@
+name: generic
+language: generic
+extensions: []
+manifests: []
+manifest_hints: []
+entrypoint_markers: []
+layer_markers: []
+flow_hint: |
+  Stack non riconosciuto: degrada con eleganza a un'analisi generica basata sul
+  diff/sorgente. Ricostruisci comunque il flusso di esecuzione (chi chiama chi,
+  come si muovono i dati, dove avvengono validazioni/blocchi) e il flusso di
+  business/dominio, senza assumere annotazioni o framework specifici.
