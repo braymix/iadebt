@@ -6,6 +6,8 @@ Indipendente dal provider concreto: riceve un AIProvider e lavora su Unit.
 from __future__ import annotations
 
 import concurrent.futures as cf
+import datetime as _dt
+import os
 import time
 from typing import Callable, Dict, List, Tuple
 
@@ -14,12 +16,7 @@ from .analyzer.incremental import build_incremental_units
 from .analyzer.prompts import build_prompt, parse_result
 from .config import Config
 from .models import AnalysisResult, Unit
-from .output import (
-    write_architecture_map,
-    write_flashcards,
-    write_map,
-    write_notes,
-)
+from .output import write_html_report
 from .providers.base import AIProvider, ProviderError, RateLimitError
 from .stack import StackRule, load_rules, rule_for_file
 from .state import StateStore
@@ -111,23 +108,20 @@ def _process(u: Unit, work, store: StateStore, run_id: str,
 
 # ---------------------------------------------------------------- output
 
-def _collect_and_write(out_dir: str, deck: str, run_title: str,
-                       ordered: List[Tuple[str, AnalysisResult]]) -> List[str]:
-    cards = []
-    maps = []
-    for title, res in ordered:
-        for c in res.flashcards:
-            cards.append((title, c))
-        if res.mermaid:
-            maps.append((title, res.mermaid))
-    paths: List[str] = []
-    if cards:
-        csv_p, md_p = write_flashcards(out_dir, deck, cards)
-        paths += [csv_p, md_p]
-    if maps:
-        paths.append(write_map(out_dir, maps))
-    paths.append(write_notes(out_dir, run_title, ordered))
-    return paths
+def _write_report(out_dir: str, deck: str, run_title: str,
+                  ordered: List[Tuple[str, AnalysisResult]],
+                  meta: Dict[str, str],
+                  architecture: str = None) -> List[str]:
+    """Produce l'unico report.html (navigabile + scaricabile a sezioni)."""
+    path = write_html_report(
+        out_dir,
+        run_title=run_title,
+        deck=deck,
+        blocks=ordered,
+        architecture=architecture,
+        meta=meta,
+    )
+    return [path]
 
 
 # ---------------------------------------------------------------- incrementale
@@ -142,7 +136,15 @@ def run_incremental(repo: str, commit_range: str, config: Config, provider: AIPr
     log(f"Analizzo {len(units)} blocchi (file modificati) con provider '{provider.name}'.")
     results = execute_units(units, provider, config, store, run_id, log)
     ordered = [(u.title, results[u.key]) for u in units if u.key in results]
-    return _collect_and_write(out_dir, f"codestudy::{run_id}", f"delta {commit_range}", ordered)
+    meta = {
+        "Modalità": "incrementale",
+        "Repository": os.path.abspath(repo),
+        "Range commit": commit_range,
+        "Provider": provider.name,
+        "Stack": f"{stack.name} ({stack.language})",
+        "Generato": _dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+    return _write_report(out_dir, f"codestudy::{run_id}", f"delta {commit_range}", ordered, meta)
 
 
 # ---------------------------------------------------------------- intero software
@@ -177,12 +179,21 @@ def run_full(repo: str, config: Config, provider: AIProvider, store: StateStore,
         if u.key in dir_results:
             ordered.append((f"modulo: {u.title}", dir_results[u.key]))
 
-    paths = _collect_and_write(out_dir, f"codestudy::{run_id}", "intero software", ordered)
-
     arch = arch_results.get(arch_unit.key)
-    if arch and arch.mermaid:
-        paths.append(write_architecture_map(out_dir, arch.mermaid))
-    return paths
+    architecture = arch.mermaid if arch and arch.mermaid else None
+
+    module = (config.path_filters[0] if config.path_filters else None)
+    meta = {
+        "Modalità": "intero software",
+        "Repository": os.path.abspath(repo),
+        "Ambito": module or "(tutto il repository)",
+        "Provider": provider.name,
+        "Stack": f"{stack.name} ({stack.language})",
+        "Generato": _dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+    return _write_report(
+        out_dir, f"codestudy::{run_id}", "intero software", ordered, meta, architecture
+    )
 
 
 # ---------------------------------------------------------------- stima costi
