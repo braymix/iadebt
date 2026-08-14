@@ -9,7 +9,7 @@ import concurrent.futures as cf
 import datetime as _dt
 import os
 import time
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from .analyzer import full as full_mod
 from .analyzer.incremental import build_incremental_units
@@ -126,25 +126,39 @@ def _write_report(out_dir: str, deck: str, run_title: str,
 
 # ---------------------------------------------------------------- incrementale
 
-def run_incremental(repo: str, commit_range: str, config: Config, provider: AIProvider,
-                    store: StateStore, run_id: str, out_dir: str, stack: StackRule,
-                    log: Logger) -> List[str]:
-    units = build_incremental_units(repo, commit_range, config, stack)
+def run_incremental(repo: str, commit_range: Optional[str], config: Config,
+                    provider: AIProvider, store: StateStore, run_id: str, out_dir: str,
+                    stack: StackRule, log: Logger,
+                    commits: Optional[List[str]] = None,
+                    selection_key: Optional[str] = None,
+                    selection_label: Optional[str] = None) -> List[str]:
+    units = build_incremental_units(repo, commit_range, config, stack, commits=commits)
     if not units:
-        log("Nessuna modifica nel range: niente da analizzare.")
+        log("Nessuna modifica nella selezione: niente da analizzare.")
         return []
-    log(f"Analizzo {len(units)} blocchi (file modificati) con provider '{provider.name}'.")
+    n_min = sum(1 for u in units if u.extra.get("minimal"))
+    log(f"Analizzo {len(units)} blocchi (file modificati) con provider '{provider.name}' "
+        f"— {n_min} minimali, {len(units) - n_min} completi.")
     results = execute_units(units, provider, config, store, run_id, log)
     ordered = [(u.title, results[u.key]) for u in units if u.key in results]
+    if commits:
+        default = ", ".join(s[:8] for s in commits)
+        sel_key = selection_key or "Commit analizzati"
+        sel_label = selection_label or default
+        deck_title = f"commit {sel_label}"
+    else:
+        sel_key = selection_key or "Range commit"
+        sel_label = selection_label or commit_range
+        deck_title = f"delta {sel_label}"
     meta = {
         "Modalità": "incrementale",
         "Repository": os.path.abspath(repo),
-        "Range commit": commit_range,
+        sel_key: sel_label,
         "Provider": provider.name,
         "Stack": f"{stack.name} ({stack.language})",
         "Generato": _dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
-    return _write_report(out_dir, f"codestudy::{run_id}", f"delta {commit_range}", ordered, meta)
+    return _write_report(out_dir, f"codestudy::{run_id}", deck_title, ordered, meta)
 
 
 # ---------------------------------------------------------------- intero software
@@ -198,9 +212,10 @@ def run_full(repo: str, config: Config, provider: AIProvider, store: StateStore,
 
 # ---------------------------------------------------------------- stima costi
 
-def estimate_incremental(repo: str, commit_range: str, config: Config,
-                         stack: StackRule) -> int:
-    return len(build_incremental_units(repo, commit_range, config, stack))
+def estimate_incremental(repo: str, commit_range: Optional[str], config: Config,
+                         stack: StackRule,
+                         commits: Optional[List[str]] = None) -> int:
+    return len(build_incremental_units(repo, commit_range, config, stack, commits=commits))
 
 
 def estimate_full(repo: str, config: Config, stack: StackRule) -> int:

@@ -22,6 +22,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "max_retries": 4,
     "backoff_base_seconds": 2.0,
     "max_payload_chars": 24000,  # tronca payload molto grandi prima dell'invio
+    "minimal_threshold": 12,     # <= righe cambiate => spiegazione minimale
     "providers": {
         "claude-code-cli": {
             "command": "claude",
@@ -85,6 +86,10 @@ class Config:
     def max_payload_chars(self) -> int:
         return int(self.raw.get("max_payload_chars", 24000))
 
+    @property
+    def minimal_threshold(self) -> int:
+        return int(self.raw.get("minimal_threshold", 12))
+
     def provider_config(self, name: Optional[str] = None) -> Dict[str, Any]:
         name = name or self.provider
         return dict(self.raw.get("providers", {}).get(name, {}))
@@ -131,6 +136,7 @@ workers: 1                       # parallelismo chiamate AI (alza con cautela)
 max_retries: 4
 backoff_base_seconds: 2.0
 max_payload_chars: 24000
+minimal_threshold: 12            # modifiche con <= tot righe cambiate: spiegazione minimale
 
 providers:
   claude-code-cli:

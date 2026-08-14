@@ -41,6 +41,31 @@ Regole per le flashcard (NON negoziabili):
 """
 
 
+_JSON_CONTRACT_MINIMAL = """\
+La modifica e' PICCOLA: sii ESSENZIALE, niente riempitivi. Rispondi ESCLUSIVAMENTE
+con un oggetto JSON valido (nessun testo prima o dopo, niente fence markdown) con
+ESATTAMENTE queste chiavi:
+{
+  "summary": "1 frase asciutta: cosa cambia in concreto e perche' conta",
+  "technical_flow": "",
+  "business_flow": "",
+  "flashcards": [
+    {"front": "domanda sull'effetto/motivo del cambio", "back": "risposta breve", "tags": "tag"}
+  ],
+  "mermaid": "",
+  "notes_markdown": ""
+}
+
+Regole per le modifiche piccole (NON negoziabili):
+- Lascia VUOTI `technical_flow`, `business_flow`, `mermaid`, `notes_markdown`: una
+  modifica piccola non li giustifica. Riempi `notes_markdown` (1 riga) SOLO se c'e'
+  un'insidia o un vincolo non ovvio.
+- 1 sola flashcard (2 al massimo, e solo se il cambio tocca due concetti distinti).
+  Deve testare la comprensione dell'EFFETTO del cambio, non "cosa fa X".
+- Se non c'e' nulla di interessante da imparare, dillo nel summary e resta minimale.
+"""
+
+
 def _system_preamble(rule: StackRule) -> str:
     hint = rule.flow_hint or "Analisi generica basata sul diff/sorgente."
     return (
@@ -52,12 +77,26 @@ def _system_preamble(rule: StackRule) -> str:
 
 
 def build_prompt(unit: Unit, rule: StackRule) -> str:
-    """Costruisce il prompt completo per una unita' di lavoro."""
+    """Costruisce il prompt completo per una unita' di lavoro.
+
+    Per i delta piccoli (`unit.extra["minimal"]`) usa un contratto ridotto: solo
+    riassunto secco e una flashcard, cosi' le spiegazioni restano proporzionate al
+    peso della modifica.
+    """
+    contract = _JSON_CONTRACT
     if unit.kind == "file_delta":
-        task = (
-            f"Analizza il DIFF del file `{unit.title}` sul range di commit indicato. "
-            "Spiega come e' cambiato il flusso (tecnico e di dominio)."
-        )
+        minimal = bool(unit.extra.get("minimal"))
+        if minimal:
+            contract = _JSON_CONTRACT_MINIMAL
+            task = (
+                f"Analizza il DIFF (piccolo) del file `{unit.title}`. Spiega in modo "
+                "essenziale cosa cambia e perche'; niente flusso completo ne' mappe."
+            )
+        else:
+            task = (
+                f"Analizza il DIFF del file `{unit.title}` sul range di commit indicato. "
+                "Spiega come e' cambiato il flusso (tecnico e di dominio)."
+            )
         body = f"DIFF:\n```diff\n{unit.payload}\n```"
     elif unit.kind == "file_summary":
         task = (
@@ -86,7 +125,7 @@ def build_prompt(unit: Unit, rule: StackRule) -> str:
         f"{_system_preamble(rule)}\n"
         f"COMPITO: {task}\n\n"
         f"{body}\n\n"
-        f"{_JSON_CONTRACT}"
+        f"{contract}"
     )
 
 

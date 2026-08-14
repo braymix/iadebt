@@ -63,6 +63,67 @@ def resolve_range(repo: str, commit_range: str) -> str:
     return rng
 
 
+def resolve_commits(repo: str, commits: List[str]) -> List[str]:
+    """Valida una lista di commit espliciti e la normalizza a SHA piene.
+
+    Ogni voce puo' essere una qualsiasi revisione (sha corta, tag, `HEAD~2`, ...).
+    Solleva se una voce non risolve a un commit. Rimuove i duplicati mantenendo
+    l'ordine in cui sono stati indicati.
+    """
+    resolved: List[str] = []
+    seen = set()
+    for raw in commits:
+        ref = (raw or "").strip()
+        if not ref:
+            continue
+        try:
+            sha = _run(repo, ["rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"]).strip()
+        except GitError as e:
+            raise GitError(f"Commit non valido '{ref}': {e}") from e
+        if sha and sha not in seen:
+            seen.add(sha)
+            resolved.append(sha)
+    if not resolved:
+        raise GitError("Nessun commit valido specificato.")
+    return resolved
+
+
+def changed_files_in_commit(repo: str, sha: str,
+                            path_filters: Optional[List[str]] = None) -> List[str]:
+    """File modificati dal singolo commit (diff verso il primo parent).
+
+    `--first-parent -m` fa mostrare, per i merge, cio' che il merge ha portato dal
+    primo parent (altrimenti il diff combinato sarebbe vuoto); su un commit normale
+    non cambia nulla. Gestisce anche il commit radice (confronto con l'albero vuoto).
+    """
+    args = ["diff-tree", "--no-commit-id", "--name-only", "-r", "-m", "--first-parent", sha]
+    if path_filters:
+        args += ["--", *path_filters]
+    out = _run(repo, args)
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def file_diff_in_commit(repo: str, sha: str, path: str) -> str:
+    """Diff introdotto dal singolo commit per un file (senza header del commit)."""
+    return _run(repo, ["show", "--format=", "-m", "--first-parent", sha, "--", path])
+
+
+def resolve_ref(repo: str, ref: str) -> str:
+    """Valida una singola revisione (branch/tag/commit) e la ritorna normalizzata.
+
+    Usata per il confronto `git diff <ref>`, che mette a confronto quel ref con la
+    working tree — quindi include anche le modifiche NON ancora committate.
+    """
+    r = (ref or "").strip()
+    if not r:
+        raise GitError("Riferimento vuoto.")
+    try:
+        _run(repo, ["rev-parse", "--verify", "--quiet", f"{r}^{{commit}}"])
+    except GitError as e:
+        raise GitError(f"Riferimento git non valido '{r}': {e}") from e
+    return r
+
+
 def changed_files(repo: str, commit_range: str, path_filters: Optional[List[str]] = None) -> List[str]:
     """File modificati nel range (relativi alla root del repo)."""
     args = ["diff", "--name-only", commit_range]
