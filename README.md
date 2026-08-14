@@ -84,13 +84,26 @@ conferma (`--yes`/`-y` per saltarla negli script).
 
 ## Output
 
-Tutto in `./codestudy-output/<run-id>/` (configurabile), per run:
+Per ogni run viene prodotto **un unico file**: `./codestudy-output/<run-id>/report.html`.
 
-- `flashcards.csv` — formato stile Anki (`front,back,tags,deck`), importabile ovunque.
-- `flashcards.md` — stesso contenuto, leggibile a occhio.
-- `maps.md` — diagrammi **Mermaid** (sequence/flowchart) delle catene di chiamate.
-- `architecture.md` — mappa dell'architettura macro (solo modalità `full`).
-- `notes.md` — note di studio discorsive (tecnico + dominio).
+È un report **self-contained** (CSS/JS inline, nessun file collaterale), pensato per
+essere aperto direttamente nel browser:
+
+- **Navigabile** — sidebar con indice di tutte le sezioni + ricerca live.
+- **Completo** — panoramica del run, architettura macro (modalità `full`), e per ogni
+  file/modulo: riassunto, **flusso tecnico** + **flusso di business/dominio**, note,
+  **mappa Mermaid** renderizzata e **flashcard** interattive (click per rivelare la
+  risposta; funzionano anche offline perché sono `<details>` nativi).
+- **Scaricabile a sezioni** — ogni dettaglio (architettura, singolo file/modulo, il
+  mazzo di flashcard) ha un pulsante **«⬇ Scarica dettaglio»** che esporta quella
+  sola sezione come mini-HTML autonomo. L'export clona il DOM già renderizzato, quindi
+  gli **SVG di Mermaid sono inclusi** e il file scaricato funziona senza rete.
+- **Extra** — **«Scarica tutto»** (snapshot dell'intera pagina), **«CSV (Anki)»**
+  (flashcard in formato `front,back,tags,deck`) e **«Stampa / PDF»**.
+
+> Le mappe Mermaid vengono renderizzate caricando la libreria da CDN; se apri il
+> report **senza rete**, al posto del diagramma viene mostrato il suo sorgente
+> Mermaid (comunque leggibile).
 
 ### Esempio di flashcard reale (Java/Spring)
 
@@ -158,7 +171,7 @@ codestudy/
   vcs/              # estrattore git (subprocess)
   stack/            # rilevamento stack + rules/*.yaml (plugin per linguaggio)
   analyzer/         # prompts (flusso ibrido), incremental, full (bottom-up)
-  output/           # flashcards (CSV+md), maps (Mermaid), notes (md)
+  output/           # report.html unico (report.py); moduli md/csv legacy riusabili
   state/            # store SQLite per la ripresa
 ```
 
