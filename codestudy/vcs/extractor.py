@@ -24,6 +24,8 @@ def _run(repo: str, args: List[str]) -> str:
             ["git", "-C", repo, *args],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
     except OSError as e:
         raise GitError(f"Impossibile eseguire git: {e}") from e
