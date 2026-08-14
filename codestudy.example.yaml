@@ -1,0 +1,37 @@
+# ===== CodeStudy — configurazione =====
+# Motore AI attivo. Il resto del tool e' identico per ogni provider.
+#   claude-code-cli : usa il CLI `claude` in headless (nessuna API key)
+#   api             : API HTTP (Anthropic/OpenAI) - chiave via env
+#   local           : endpoint OpenAI-compatibile (Ollama / LM Studio)
+provider: claude-code-cli
+
+output_dir: ./codestudy-output
+commit_range: HEAD~10..HEAD      # default per la modalita' incrementale
+path_filters: []                 # es. ["src/main/java/com/acme/debts"]
+
+workers: 1                       # parallelismo chiamate AI (alza con cautela)
+max_retries: 4
+backoff_base_seconds: 2.0
+max_payload_chars: 24000
+
+providers:
+  claude-code-cli:
+    command: claude
+    model: ""                    # vuoto = default del CLI
+    extra_args: []
+    timeout_seconds: 600
+
+  api:
+    base_url: https://api.anthropic.com/v1/messages
+    kind: anthropic              # "anthropic" | "openai"
+    model: claude-sonnet-5
+    api_key_env: ANTHROPIC_API_KEY   # <-- la chiave si legge da QUI, mai in chiaro
+    timeout_seconds: 600
+    max_tokens: 4096
+
+  local:
+    base_url: http://localhost:11434/v1/chat/completions
+    model: llama3.1
+    api_key_env: ""
+    timeout_seconds: 600
+    max_tokens: 4096

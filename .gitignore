@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+build/
+dist/
+codestudy-output/
+codestudy.yaml
